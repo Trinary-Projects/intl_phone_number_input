@@ -55,6 +55,41 @@ class _CountrySearchListWidgetState extends State<CountrySearchListWidget> {
         InputDecoration(labelText: 'Search by country name or dial code');
   }
 
+  /// Filters the list of Country by text from the search box.
+  List<Country> filterCountries() {
+    final value = _searchController.text.trim();
+
+    if (value.isNotEmpty) {
+      return widget.countries
+          .where(
+            (Country country) =>
+                country.alpha3Code!
+                    .toLowerCase()
+                    .startsWith(value.toLowerCase()) ||
+                country.name!.toLowerCase().contains(value.toLowerCase()) ||
+                getCountryName(country)!
+                    .toLowerCase()
+                    .contains(value.toLowerCase()) ||
+                country.dialCode!.contains(value.toLowerCase()),
+          )
+          .toList();
+    }
+    
+    return widget.countries;
+  }
+
+  /// Returns the country name of a [Country]. if the locale is set and translation in available.
+  /// returns the translated name.
+  String? getCountryName(Country country) {
+    if (widget.locale != null && country.nameTranslations != null) {
+      String? translated = country.nameTranslations![widget.locale!];
+      if (translated != null && translated.isNotEmpty) {
+        return translated;
+      }
+    }
+    return country.name;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -87,35 +122,26 @@ class _CountrySearchListWidgetState extends State<CountrySearchListWidget> {
             itemBuilder: (BuildContext context, int index) {
               Country country = filteredCountries[index];
 
-              return DirectionalCountryListTile(
-                country: country,
-                locale: widget.locale,
-                showFlags: widget.showFlags!,
-                useEmoji: widget.useEmoji!,
+              return ListTile(
+                key: Key(TestHelper.countryItemKeyValue(country.alpha2Code)),
+                leading: _Flag(country: country, useEmoji: widget.useEmoji),
+                    
+                title: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      '${getCountryName(country)}',
+                      textAlign: TextAlign.start,
+                      style: Theme.of(context).textTheme.bodyText1!.copyWith(
+                        fontWeight: FontWeight.w300,
+                      ),
+                    )),
+                subtitle: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text('${country.dialCode ?? ''}',
+                        textDirection: TextDirection.ltr,
+                        textAlign: TextAlign.start)),
+                onTap: () => Navigator.of(context).pop(country),
               );
-              // return ListTile(
-              //   key: Key(TestHelper.countryItemKeyValue(country.alpha2Code)),
-              //   leading: widget.showFlags!
-              //       ? _Flag(country: country, useEmoji: widget.useEmoji)
-              //       : null,
-              //   title: Align(
-              //     alignment: AlignmentDirectional.centerStart,
-              //     child: Text(
-              //       '${Utils.getCountryName(country, widget.locale)}',
-              //       textDirection: Directionality.of(context),
-              //       textAlign: TextAlign.start,
-              //     ),
-              //   ),
-              //   subtitle: Align(
-              //     alignment: AlignmentDirectional.centerStart,
-              //     child: Text(
-              //       '${country.dialCode ?? ''}',
-              //       textDirection: TextDirection.ltr,
-              //       textAlign: TextAlign.start,
-              //     ),
-              //   ),
-              //   onTap: () => Navigator.of(context).pop(country),
-              // );
             },
           ),
         ),
